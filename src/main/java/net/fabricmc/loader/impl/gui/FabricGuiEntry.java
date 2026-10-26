@@ -32,8 +32,10 @@ import net.fabricmc.loader.impl.game.GameProvider;
 import net.fabricmc.loader.impl.gui.FabricStatusTree.FabricBasicButtonType;
 import net.fabricmc.loader.impl.gui.FabricStatusTree.FabricStatusTab;
 import net.fabricmc.loader.impl.gui.FabricStatusTree.FabricTreeWarningLevel;
+import net.fabricmc.loader.impl.metadata.DependencyOverrides;
 import net.fabricmc.loader.impl.util.LoaderUtil;
 import net.fabricmc.loader.impl.util.Localization;
+import net.fabricmc.loader.impl.util.SystemProperties;
 import net.fabricmc.loader.impl.util.UrlUtil;
 import net.fabricmc.loader.impl.util.log.Log;
 import net.fabricmc.loader.impl.util.log.LogCategory;
@@ -119,9 +121,12 @@ public final class FabricGuiEntry {
 	}
 
 	public static void displayError(String mainText, Throwable exception, Consumer<FabricStatusTree> treeCustomiser, boolean exitAfter) {
+		boolean isCI = System.getenv("CI") != null;
+		boolean isNoGui = SystemProperties.isSet(SystemProperties.NO_GUI);
+
 		GameProvider provider = FabricLoaderImpl.INSTANCE.tryGetGameProvider();
 
-		if (!GraphicsEnvironment.isHeadless() && (provider == null || provider.canOpenErrorGui())) {
+		if (!isCI && !isNoGui && !GraphicsEnvironment.isHeadless() && (provider == null || provider.canOpenErrorGui())) {
 			String title = "Fabric Loader " + FabricLoaderImpl.VERSION;
 			FabricStatusTree tree = new FabricStatusTree(title, mainText);
 			FabricStatusTab crashTab = tree.addTab(Localization.format("gui.tab.crash"));
@@ -130,6 +135,13 @@ public final class FabricGuiEntry {
 				crashTab.node.addCleanedException(exception);
 			} else {
 				crashTab.node.addMessage(Localization.format("gui.error.missingException"), FabricTreeWarningLevel.NONE);
+			}
+
+			DependencyOverrides dependencyOverrides = FabricLoaderImpl.INSTANCE.getDependencyOverrides();
+
+			if (dependencyOverrides != null && !dependencyOverrides.getAffectedModIds().isEmpty()) {
+				crashTab.node.addMessage(Localization.format("gui.error.dependencyOverrides",
+						String.join(", ", dependencyOverrides.getAffectedModIds())), FabricTreeWarningLevel.WARN);
 			}
 
 			// Maybe add an "open mods folder" button?

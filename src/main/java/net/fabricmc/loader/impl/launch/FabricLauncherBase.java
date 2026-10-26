@@ -29,10 +29,13 @@ import net.fabricmc.loader.impl.FabricLoaderImpl;
 import net.fabricmc.loader.impl.FormattedException;
 import net.fabricmc.loader.impl.game.GameProvider;
 import net.fabricmc.loader.impl.gui.FabricGuiEntry;
+import net.fabricmc.loader.impl.util.SystemProperties;
 import net.fabricmc.loader.impl.util.log.Log;
 import net.fabricmc.loader.impl.util.log.LogCategory;
 
 public abstract class FabricLauncherBase implements FabricLauncher {
+	protected static final boolean IS_DEVELOPMENT = SystemProperties.isSet(SystemProperties.DEVELOPMENT);
+
 	private static boolean mixinReady;
 	private static Map<String, Object> properties;
 	private static FabricLauncher launcher;
@@ -44,6 +47,11 @@ public abstract class FabricLauncherBase implements FabricLauncher {
 
 	public static Class<?> getClass(String className) throws ClassNotFoundException {
 		return Class.forName(className, true, getLauncher().getTargetClassLoader());
+	}
+
+	@Override
+	public final boolean isDevelopment() {
+		return IS_DEVELOPMENT;
 	}
 
 	@Override
